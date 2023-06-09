@@ -8,9 +8,9 @@ echo [realesrgan-x4plus-anime] (optimized for anime images, small model size) (S
 del _tmp\*.* /s /q /f > NUL 2> NUL
 mkdir _outputs-gan-x4plus-anime  > NUL 2> NUL
 del _outputs-gan-x4plus-anime\*.* /s /q /f > NUL 2> NUL
-realesrgan-ncnn-vulkan.exe -i _inputs -o _tmp -n realesrgan-x4plus-anime
+realesrgan-ncnn-vulkan.exe -x -f png -i _inputs -o _tmp -n realesrgan-x4plus-anime
 for %%a in ("_tmp\*.png") do (
-   call scale.bat -source "%%~fa" -target "_outputs-gan-x4plus-anime\%%~nxa" -max-height 2500 -keep-ratio yes -force yes
+   call scale.bat -source "%%~fa" -target "_outputs-gan-x4plus-anime\%%~na.jpg" -max-height 2500 -keep-ratio yes -force yes
 )
-
+call renumber.cmd _outputs-gan-x4plus-anime\
 rd /S /Q _tmp
