@@ -23,7 +23,7 @@ foreach ($file in $files) {
         $paddedNumber = $number.PadLeft(4, '0')
 
         # Create the new file name by combining the base name and padded number
-        $newFileName = 'SFDOGSDIFGSDOFGISDOFG' + $paddedNumber + $extension
+        $newFileName = 'SFDOGSDIFGSDOFGISDOFG' + $paddedNumber + $file.Name + $extension
 
         # Rename the file
         Rename-Item -Path $file.FullName -NewName $newFileName
