@@ -3,8 +3,10 @@ param (
     [string]$FolderPath
 )
 
+Set-Location -Path $FolderPath
+
 # Get the list of files in the folder
-$files = Get-ChildItem $FolderPath
+$files = Get-ChildItem '.'
 
 # Iterate through each file
 foreach ($file in $files) {
@@ -18,20 +20,18 @@ foreach ($file in $files) {
 
         # Get the number from the original file name
         $number = $file.Name -replace '\D', ''
-
         # Pad the number to four characters
         $paddedNumber = $number.PadLeft(4, '0')
-
         # Create the new file name by combining the base name and padded number
-        $newFileName = 'SFDOGSDIFGSDOFGISDOFG' + $paddedNumber + $file.Name + $extension
+        $newFileName = 'SFDOGSDIFGSDOFGISDOFG' + $paddedNumber + $file.Extension
 
         # Rename the file
-        Rename-Item -Path $file.FullName -NewName $newFileName
+        Rename-Item -LiteralPath "$file" -NewName "$newFileName"
     }
 }
 
 # Get the list of files in the folder
-$files = Get-ChildItem $FolderPath | Sort-Object -Property Name
+$files = Get-ChildItem "." | Sort-Object -Property Name
 
 # Calculate the number of digits required for padding
 $paddingDigits = $files.Count.ToString().Length
@@ -48,7 +48,7 @@ for ($i = 0; $i -lt $files.Count; $i++) {
 
     # Create the new file name
     $newFileName = $paddedIndex + $extension
-
+	
     # Rename the file
-    Rename-Item -Path $file.FullName -NewName $newFileName
+    Rename-Item -LiteralPath "$file" -NewName "$newFileName"
 }
