@@ -15,6 +15,6 @@ for %%a in ("_tmp\*.png") do (
 )
 pause
 echo renumbering files with padding...
-call PowerShell.exe -ExecutionPolicy Bypass -File "padfilenames.ps1" -FolderPath "_outputs-gan-x4plus"
+cd _outputs-gan-x4plus && cd .. && call PowerShell.exe -ExecutionPolicy Bypass -File "padfilenames.ps1" -FolderPath "_outputs-gan-x4plus"
 echo deleting temporary folder...
 rd /S /Q _tmp

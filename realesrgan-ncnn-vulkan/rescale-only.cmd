@@ -14,6 +14,6 @@ for %%a in ("_inputs\*.*") do (
 )
 pause
 echo renumbering files with padding...
-call PowerShell.exe -ExecutionPolicy Bypass -File "padfilenames.ps1" -FolderPath "_outputs-rescale"
+cd _outputs-rescale && cd .. && call PowerShell.exe -ExecutionPolicy Bypass -File "padfilenames.ps1" -FolderPath "_outputs-rescale"
 echo deleting temporary folder...
 rd /S /Q _tmp
