@@ -19,11 +19,13 @@ foreach ($file in $files) {
         $baseName = $file.Name -replace '\d', ''
 
         # Get the number from the original file name
-        $number = $file.Name -replace '\D', ''
+        $match = $file.Name | Select-String -Pattern "\d+" -AllMatches
+        $number = $match.Matches[0].Value
+
         # Pad the number to four characters
         $paddedNumber = $number.PadLeft(4, '0')
         # Create the new file name by combining the base name and padded number
-        $newFileName = 'SFDOGSDIFGSDOFGISDOFG' + $paddedNumber + $file.Name
+        $newFileName = 'SFDOGSDI_' + $paddedNumber + $file.Name
 
         # Rename the file
         Rename-Item -LiteralPath "$file" -NewName "$newFileName"
