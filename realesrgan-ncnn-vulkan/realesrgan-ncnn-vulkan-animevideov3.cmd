@@ -3,7 +3,7 @@ REM https://github.com/xinntao/Real-ESRGAN
 REM https://github.com/npocmaka/batch.scripts/blob/master/hybrids/jscript/imageProcessing/scale.bat
 
 REM variables
-set model_name=x4plus
+set model_name=animevideov3
 set model_fullname=realesr-%model_name%
 set model_info="[%model_fullname%] (black&white mangas + animes)"
 set target_height=2500
