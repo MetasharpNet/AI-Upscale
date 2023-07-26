@@ -51,6 +51,7 @@ for %%a in ("_inputs\*.*") do (
 	del _inputs-extracted\*.xml /s /q /f > NUL 2> NUL
 	del _inputs-extracted\*.pdf /s /q /f > NUL 2> NUL
 	del _inputs-extracted\*.nfo /s /q /f > NUL 2> NUL
+	del _inputs-extracted\zzz-rip-club*.* /s /q /f > NUL 2> NUL
 	
 	call :msg %cyan% "downsize initial pictures heights to %target_height%px..."
 	for %%b in ("_inputs-extracted\*.*") do (

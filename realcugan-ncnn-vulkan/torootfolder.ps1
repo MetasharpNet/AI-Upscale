@@ -15,10 +15,10 @@ function Move-FilesRecursively {
         [string]$DestinationFolder
     )
 
-    $files = Get-ChildItem -Path $Folder -File
+    $files = Get-ChildItem -LiteralPath $Folder -File
     foreach ($file in $files) {
         $newFilePath = Join-Path $DestinationFolder $file.Name
-        Move-Item -Path $file.FullName -Destination $newFilePath -Force
+        Move-Item -LiteralPath $file.FullName -Destination $newFilePath -Force
     }
 
     $subFolders = Get-ChildItem -Path $Folder -Directory
@@ -29,8 +29,8 @@ function Move-FilesRecursively {
 
 Move-FilesRecursively -Folder $DestinationFolder -DestinationFolder $DestinationFolder
 
-$subFolders = Get-ChildItem -Path $DestinationFolder -Directory
+$subFolders = Get-ChildItem -LiteralPath $DestinationFolder -Directory
 foreach ($subFolder in $subFolders) {
     $subFolder = Join-Path $DestinationFolder $subFolder
-    Remove-Item -Path $subFolder -Recurse -Force
+    Remove-Item -LiteralPath $subFolder -Recurse -Force
 }
