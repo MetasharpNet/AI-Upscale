@@ -20,7 +20,7 @@ if (-not (Test-Path (Split-Path -Parent $DestinationFilePath))) {
 $DestinationFilePathAsZip = $DestinationFilePath + ".zip"
 
 # Compress the folder into a ZIP archive
-Compress-Archive -Path $SourceFolder -DestinationPath $DestinationFilePathAsZip -CompressionLevel Optimal
+Compress-Archive -Path $SourceFolder\*.* -DestinationPath $DestinationFilePathAsZip -CompressionLevel Optimal
 
 # Create the full path for the final ".cbz" file
 $DestinationFolder=Split-Path $DestinationFilePath
