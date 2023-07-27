@@ -54,7 +54,7 @@ var percentage=false;
 
 ////////////////////////////
 ////                      //
-/**/     var QUALITY=100; //
+/**/     var QUALITY=101; //
 ////                      //
 ////////////////////////////
 
@@ -107,6 +107,9 @@ function format2ID(format){
 }
 
 function convert(image,format){
+	if (QUALITY==101){
+		QUALITY=100;
+	}
 	var ic=imageProcess.Filters.Count;
 	var filterFormat=format2ID(format);
 	if(filterFormat==null){
@@ -161,6 +164,7 @@ function printHelp(){
 	WScript.Echo("-force  - If yes and the target file already exists , it will be overwritten");
 	WScript.Echo("-max-height - max height of the image");
 	WScript.Echo("-max-width - max width of the image");
+	WScript.Echo("-quality - quality (default: 100 for 100%)");
 	WScript.Echo("-keep-ratio - if dimensions ratio will be preserved.Default is yes");
 	WScript.Echo("-frame-index - Have no idea what this is used for , but it is pressented in the rotation filter capabilities.Images with this and without looks the same.Accepted values are from -0.5 to 1");
 	
@@ -236,6 +240,16 @@ function parseArguments(){
 				WScript.Quit(20);
 			}			
 		}		
+
+		if (ARGS.Item(arg).toLowerCase() == "-quality") {
+			try {
+				QUALITY=parseInt(ARGS.Item(arg +1));
+			} catch (err){
+				WScript.Echo("Wrong argument:");
+				WScript.Echo(err.message);
+				WScript.Quit(10);
+			}
+		}
 	}
 	
 	if (target==""){
@@ -302,7 +316,7 @@ if(percentage){
 scale();
 ///
 
-if (sourceFormat !== targetFormat ){
+if (sourceFormat !== targetFormat || QUALITY != 101 ){
 	convert(resImg,targetFormat);
 }
 
