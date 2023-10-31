@@ -3,6 +3,8 @@ param (
     [string]$FolderPath
 )
 
+#$FolderPath = "..\debugfolder"
+
 Set-Location -Path $FolderPath
 
 # Get the list of files in the folder
@@ -12,23 +14,35 @@ $files = Get-ChildItem '.'
 foreach ($file in $files) {
     # Check if the file name contains a number
     if ($file.Name -match '\d') {
-        # Extract the file extension
-        $extension = $file.Extension
 
-        # Remove the extension from the original file name
-        $baseName = $file.Name -replace '\d', ''
+        $newFileName = $file.Name
 
-        # Get the number from the original file name
-        $match = $file.Name | Select-String -Pattern "\d+" -AllMatches
-        $number = $match.Matches[0].Value
+        # Get the numbers from the original file name
+        $matches = $file.Name | Select-String -Pattern "\d+" -AllMatches
 
-        # Pad the number to four characters
-        $paddedNumber = $number.PadLeft(4, '0')
-        # Create the new file name by combining the base name and padded number
-        $newFileName = 'SFDOGSDI_' + $paddedNumber + $file.Name
+        $numberMatches = $matches.Matches | ForEach-Object {
+                $number = $_.Value.PadLeft(4, '0')
+                $startIndex = $_.Index
+                $endIndex = $startIndex + $_.Length
+                [PSCustomObject]@{
+                    Number = $number
+                    StartIndex = $startIndex
+                    EndIndex = $endIndex
+            }
+        }
+
+        $offset = 0
+        foreach ($match in $numberMatches) {
+            $startIndex = $match.StartIndex + $offset
+            $endIndex = $match.EndIndex + $offset
+            $number = $match.Number
+            $newFileName = $newFileName.Substring(0, $startIndex) + $number + $newFileName.Substring($endIndex)
+            $offset += $match.Number.Length - $match.EndIndex + $match.StartIndex
+        }
 
         # Rename the file
-        Rename-Item -LiteralPath "$file" -NewName "$newFileName"
+        Rename-Item -LiteralPath "$file" -NewName "SFDOGSDI_$newFileName"
+
     }
 }
 
