@@ -7,6 +7,12 @@ rd /S /Q _inputs-frames
 rd /S /Q _inputs-resize
 rd /S /Q _tmp
 rd /S /Q _outputs-frames
+rd /S /Q _outputs-animevideov3
+rd /S /Q _outputs-animevideov3-cbz
+rd /S /Q _outputs-gan-x4plus
+rd /S /Q _outputs-gan-x4plus-cbz
+rd /S /Q _outputs-gan-x4plus-anime
+rd /S /Q _outputs-gan-x4plus-anime-cbz
 rd /S /Q _outputs-nose
 rd /S /Q _outputs-nose-cbz
 rd /S /Q _outputs-pro

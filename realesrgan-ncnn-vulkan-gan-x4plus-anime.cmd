@@ -56,10 +56,10 @@ for %%a in ("_inputs\*.*") do (
 	del _inputs-extracted\*.sfv /s /q /f > NUL 2> NUL
 	del _inputs-extracted\zzz-rip-club*.* /s /q /f > NUL 2> NUL
 	del _inputs-extracted\.DS_Store /s /q /f > NUL 2> NUL
-	
+
 	call :msg %cyan% "rename files"
 	call powershell -ExecutionPolicy Bypass -File "tools\substitutecharacters.ps1" "_inputs-extracted"
-	
+
 	call :msg %cyan% "downsize initial pictures heights to %target_height%px..."
 	for %%b in ("_inputs-extracted\*.*") do (
 	   call tools\scale.bat -source "%%~fb" -target "_inputs-resize\%%~nb.jpg" -max-height %target_height% -keep-ratio yes -force yes
