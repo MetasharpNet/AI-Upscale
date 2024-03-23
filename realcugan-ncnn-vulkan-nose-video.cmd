@@ -1,11 +1,11 @@
 @echo off
-REM https://github.com/xinntao/Real-ESRGAN
+REM https://github.com/nihui/realcugan-ncnn-vulkan
 REM https://github.com/npocmaka/batch.scripts/blob/master/hybrids/jscript/imageProcessing/scale.bat
 
 REM variables
-set model_name=animevideov3
-set model_fullname=realesr-%model_name%
-set model_info="[%model_fullname%] (black n white mangas + animes)"
+set model_name=nose
+set model_fullname=models-%model_name%
+set model_info="[%model_fullname%] (bd best)"
 set target_height=2500
 set target_width=1738
 set model_out_folder=_outputs-%model_name%
@@ -57,10 +57,10 @@ for %%a in ("_inputs\*.*") do (
 	del /f /q "%%a.ffindex"
 
 	call :msg %cyan% "apply AI model [%model_fullname%] to images..."
-	tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs-frames -o _outputs-frames -n %model_fullname% -s 2 -f jpg
+	tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -f png -i _inputs-frames -o _outputs-frames -m %model_fullname% -n 0
 	
 	call :msg %cyan% "join upscaled images into a video..."
-	tools\ffmpeg.exe -i _outputs-frames/frame%%08d.jpg -i "%%a" -map 0:v:0 -map 1:a:0 -c:a copy -c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq 19 -qmin 1 -qmax 51 -b:v 0 -r 25 -pix_fmt yuv420p "%model_out_folder%\%%~na.mp4"
+	tools\ffmpeg.exe -i _outputs-frames/frame%%08d.png -i "%%a" -map 0:v:0 -map 1:a:0 -c:a copy -c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq 19 -qmin 1 -qmax 51 -b:v 0 -r 25 -pix_fmt yuv420p "%model_out_folder%\%%~na.mp4"
 )
 
 call :msg %cyan% "cleanup..."

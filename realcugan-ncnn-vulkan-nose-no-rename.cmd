@@ -1,15 +1,15 @@
 @echo off
-REM https://github.com/xinntao/Real-ESRGAN
+REM https://github.com/nihui/realcugan-ncnn-vulkan
 REM https://github.com/npocmaka/batch.scripts/blob/master/hybrids/jscript/imageProcessing/scale.bat
 
 REM variables
-set model_name=x4plus-anime
-set model_fullname=realesrgan-%model_name%
-set model_info="[%model_fullname%] (optimized for anime images, small model size) (Sasukeriabu BD)"
+set model_name=nose
+set model_fullname=models-%model_name%
+set model_info="[%model_fullname%] (bd best)"
 set target_height=2500
 set target_width=1738
-set model_out_folder=_outputs-gan-%model_name%
-set model_cbz_folder=_outputs-gan-%model_name%-cbz
+set model_out_folder=_outputs-%model_name%
+set model_cbz_folder=_outputs-%model_name%-cbz
 
 REM constants
 REM colors: https://stackoverflow.com/questions/2048509/how-to-echo-with-different-colors-in-the-windows-command-line
@@ -29,7 +29,6 @@ del _inputs\*.xml /s /q /f > NUL 2> NUL
 del _inputs\*.pdf /s /q /f > NUL 2> NUL
 del _inputs\*.nfo /s /q /f > NUL 2> NUL
 del _inputs\*.sfv /s /q /f > NUL 2> NUL
-del _inputs\.DS_Store /s /q /f > NUL 2> NUL
 mkdir %model_cbz_folder% > NUL 2> NUL
 
 for %%a in ("_inputs\*.*") do (
@@ -56,30 +55,28 @@ for %%a in ("_inputs\*.*") do (
 	del _inputs-extracted\*.nfo /s /q /f > NUL 2> NUL
 	del _inputs-extracted\*.sfv /s /q /f > NUL 2> NUL
 	del _inputs-extracted\zzz-rip-club*.* /s /q /f > NUL 2> NUL
-	del _inputs-extracted\.DS_Store /s /q /f > NUL 2> NUL
 
-	call :msg %cyan% "rename files"
-	call powershell -ExecutionPolicy Bypass -File "tools\substitutecharacters.ps1" "_inputs-extracted"
-
+	REM call :msg %cyan% "rename files"
+	REM call powershell -ExecutionPolicy Bypass -File "tools\substitutecharacters.ps1" "_inputs-extracted"
+	
 	call :msg %cyan% "downsize initial pictures max heights to %target_height%px and converting to jpg..."
 	for %%b in ("_inputs-extracted\*.*") do (
 	   call tools\scale.bat -source "%%~fb" -target "_inputs-resize\%%~nb.jpg" -max-height %target_height% -keep-ratio yes -force yes
 	)
 
 	call :msg %cyan% "apply AI model [%model_fullname%] to pictures..."
-	tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -f png -i _inputs-resize -o _tmp -n %model_fullname%
-
+	tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -f png -i _inputs-resize -o _tmp -m %model_fullname% -n 0
+	
 	call :msg %cyan% "downsize initial pictures max heights to %target_height%px and converting to jpg..."
 	for %%b in ("_tmp\*.png") do (
 	   call tools\scale.bat -source "%%~fb" -target "%model_out_folder%\%%~nb.jpg" -max-height %target_height% -keep-ratio yes -force yes
 	)
 
-	call :msg %cyan% "renumbering files with padding..."
-	cd %model_out_folder% && cd .. && call PowerShell.exe -ExecutionPolicy Bypass -File "tools\padfilenames.ps1" -FolderPath "%model_out_folder%"
+	REM call :msg %cyan% "renumbering files with padding..."
+	REM cd %model_out_folder% && cd .. && call PowerShell.exe -ExecutionPolicy Bypass -File "tools\padfilenames.ps1" -FolderPath "%model_out_folder%"
 
 	call :msg %cyan% "creating cbz..."
 	cd %model_out_folder% && cd .. && cd %model_cbz_folder% && cd .. && call PowerShell.exe -ExecutionPolicy Bypass -File "tools\zip.ps1" -SourceFolder "%model_out_folder%" -DestinationFilePath "%model_cbz_folder%\%%~na [ia-%target_height%px].cbz"
-
 )
 
 call :msg %cyan% "deleting temp folders..."

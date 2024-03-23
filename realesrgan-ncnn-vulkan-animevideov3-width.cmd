@@ -3,13 +3,13 @@ REM https://github.com/xinntao/Real-ESRGAN
 REM https://github.com/npocmaka/batch.scripts/blob/master/hybrids/jscript/imageProcessing/scale.bat
 
 REM variables
-set model_name=x4plus-anime
-set model_fullname=realesrgan-%model_name%
-set model_info="[%model_fullname%] (optimized for anime images, small model size) (Sasukeriabu BD)"
+set model_name=animevideov3
+set model_fullname=realesr-%model_name%
+set model_info="[%model_fullname%] (black n white mangas + animes)"
 set target_height=2500
 set target_width=1738
-set model_out_folder=_outputs-gan-%model_name%
-set model_cbz_folder=_outputs-gan-%model_name%-cbz
+set model_out_folder=_outputs-%model_name%
+set model_cbz_folder=_outputs-%model_name%-cbz
 
 REM constants
 REM colors: https://stackoverflow.com/questions/2048509/how-to-echo-with-different-colors-in-the-windows-command-line
@@ -61,17 +61,17 @@ for %%a in ("_inputs\*.*") do (
 	call :msg %cyan% "rename files"
 	call powershell -ExecutionPolicy Bypass -File "tools\substitutecharacters.ps1" "_inputs-extracted"
 
-	call :msg %cyan% "downsize initial pictures max heights to %target_height%px and converting to jpg..."
+	call :msg %cyan% "downsize initial pictures max widths to %target_width%px and converting to jpg..."
 	for %%b in ("_inputs-extracted\*.*") do (
-	   call tools\scale.bat -source "%%~fb" -target "_inputs-resize\%%~nb.jpg" -max-height %target_height% -keep-ratio yes -force yes
+	   call tools\scale.bat -source "%%~fb" -target "_inputs-resize\%%~nb.jpg" -max-width %target_width% -keep-ratio yes -force yes
 	)
 
 	call :msg %cyan% "apply AI model [%model_fullname%] to pictures..."
 	tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -f png -i _inputs-resize -o _tmp -n %model_fullname%
 
-	call :msg %cyan% "downsize initial pictures max heights to %target_height%px and converting to jpg..."
+	call :msg %cyan% "downsize initial pictures max widths to %target_width%px and converting to jpg..."
 	for %%b in ("_tmp\*.png") do (
-	   call tools\scale.bat -source "%%~fb" -target "%model_out_folder%\%%~nb.jpg" -max-height %target_height% -keep-ratio yes -force yes
+	   call tools\scale.bat -source "%%~fb" -target "%model_out_folder%\%%~nb.jpg" -max-width %target_width% -keep-ratio yes -force yes
 	)
 
 	call :msg %cyan% "renumbering files with padding..."

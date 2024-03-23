@@ -7,6 +7,7 @@ set model_name=x4plus
 set model_fullname=realesrgan-%model_name%
 set model_info="[%model_fullname%]"
 set target_height=2500
+set target_width=1738
 set model_out_folder=_outputs-gan-%model_name%
 set model_cbz_folder=_outputs-gan-%model_name%-cbz
 
@@ -56,19 +57,19 @@ for %%a in ("_inputs\*.*") do (
 	del _inputs-extracted\*.sfv /s /q /f > NUL 2> NUL
 	del _inputs-extracted\zzz-rip-club*.* /s /q /f > NUL 2> NUL
 	del _inputs-extracted\.DS_Store /s /q /f > NUL 2> NUL
-	
+
 	call :msg %cyan% "rename files"
 	call powershell -ExecutionPolicy Bypass -File "tools\substitutecharacters.ps1" "_inputs-extracted"
-	
-	call :msg %cyan% "downsize initial pictures heights to %target_height%px..."
+
+	call :msg %cyan% "downsize initial pictures max heights to %target_height%px and converting to jpg..."
 	for %%b in ("_inputs-extracted\*.*") do (
 	   call tools\scale.bat -source "%%~fb" -target "_inputs-resize\%%~nb.jpg" -max-height %target_height% -keep-ratio yes -force yes
 	)
 
-	call :msg %cyan% "apply AI model [] to pictures..."
+	call :msg %cyan% "apply AI model [%model_fullname%] to pictures..."
 	tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -f png -i _inputs-resize -o _tmp -n %model_fullname%
 
-	call :msg %cyan% "resizing and converting to jpg..."
+	call :msg %cyan% "downsize initial pictures max heights to %target_height%px and converting to jpg..."
 	for %%b in ("_tmp\*.png") do (
 	   call tools\scale.bat -source "%%~fb" -target "%model_out_folder%\%%~nb.jpg" -max-height %target_height% -keep-ratio yes -force yes
 	)
