@@ -1,14 +1,14 @@
 @echo off
 
 REM None, CUGAN, ESRGAN
-set pre_upscaler=None
+set pre_upscaler=ESRGAN
 set upscaler=CUGAN
 REM CUGAN: nose, pro, se
 REM ESRGAN: animevideov3, x4plus, x4plus-anime
-set pre_model_name=nose
+set pre_model_name=animevideov3
 set model_name=nose
 REM on, off
-set images_rename=off
+set images_rename=on
 REM height, width
 set images_resize=height
 set images_resize_height=2500
