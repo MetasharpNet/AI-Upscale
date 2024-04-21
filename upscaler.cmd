@@ -86,11 +86,13 @@ if /i %images_resize% NEQ height (
 		pause & exit
 	)
 )
-if /i %video_deinterlace% NEQ JustResize (
-	if /i %video_deinterlace% NEQ QTGMC (
-		if /i %video_deinterlace% NEQ Decomb (
-			call :msg %red% "[ERROR] video_deinterlace=%video_deinterlace% - Possible values: JustResize, QTGMC, Decomb (not case sensitive)"
-			pause & exit
+if /i %video_deinterlace% NEQ None (
+	if /i %video_deinterlace% NEQ JustResize (
+		if /i %video_deinterlace% NEQ QTGMC (
+			if /i %video_deinterlace% NEQ Decomb (
+				call :msg %red% "[ERROR] video_deinterlace=%video_deinterlace% - Possible values: None, JustResize, QTGMC, Decomb (not case sensitive)"
+				pause & exit
+			)
 		)
 	)
 )
@@ -327,6 +329,12 @@ for %%a in ("_inputs\*.*") do (
 
 		call :msg %cyan% "##### Joining upscaled images into a video..."
 		tools\ffmpeg.exe -i _outputs_frames/frame%%08d.jpg -i "%%a" -map 0:v:0 -map 1:a:0 -c:a copy -c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq %video_encoder_quality% -qmin 1 -qmax 51 -b:v 0 -r 25 -pix_fmt yuv420p -color_range mpeg -g 25 -keyint_min 25 "!model_out_folder!\%%~na.mp4"
+		REM tools\ffmpeg.exe -i _outputs_frames/frame%%08d.jpg -i "%%a" -map 0:v:0 -map 1:a:0 -c:a copy -c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq 15 -qmin 1 -qmax 51 -b:v 0 -r 25 -pix_fmt yuv420p -color_range mpeg -g 25 -keyint_min 25 "!model_out_folder!\%%~na.15.mp4"
+		REM tools\ffmpeg.exe -i _outputs_frames/frame%%08d.jpg -i "%%a" -map 0:v:0 -map 1:a:0 -c:a copy -c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq 19 -qmin 1 -qmax 51 -b:v 0 -r 25 -pix_fmt yuv420p -color_range mpeg -g 25 -keyint_min 25 "!model_out_folder!\%%~na.19.mp4"
+		REM tools\ffmpeg.exe -i _outputs_frames/frame%%08d.jpg -i "%%a" -map 0:v:0 -map 1:a:0 -c:a copy -c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq 25 -qmin 1 -qmax 51 -b:v 0 -r 25 -pix_fmt yuv420p -color_range mpeg -g 25 -keyint_min 25 "!model_out_folder!\%%~na.25.mp4"
+		REM tools\ffmpeg.exe -i _outputs_frames/frame%%08d.jpg -i "%%a" -map 0:v:0 -map 1:a:0 -c:a copy -c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq 30 -qmin 1 -qmax 51 -b:v 0 -r 25 -pix_fmt yuv420p -color_range mpeg -g 25 -keyint_min 25 "!model_out_folder!\%%~na.30.mp4"
+		REM tools\ffmpeg.exe -i _outputs_frames/frame%%08d.jpg -i "%%a" -map 0:v:0 -map 1:a:0 -c:a copy -c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq 35 -qmin 1 -qmax 51 -b:v 0 -r 25 -pix_fmt yuv420p -color_range mpeg -g 25 -keyint_min 25 "!model_out_folder!\%%~na.35.mp4"
+
 
 		call :msg %cyan% "##### Cleaning..."
 		rd /S /Q _inputs_pre_frames > NUL 2> NUL

@@ -13,7 +13,7 @@ REM height, width
 set images_resize=width
 set images_resize_height=2500
 set images_resize_width=1738
-REM QTGMC, Decomb, JustResize
+REM None, QTGMC, Decomb, JustResize
 set video_deinterlace=QTGMC
 REM None, BFF for VHS, TFF for DVD
 set video_deinterlace_assume_mode=TFF
