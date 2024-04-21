@@ -13,12 +13,45 @@ param (
 	[int]$x = 0
 )
 
+# Function to round to the nearest multiple of 4
+function RoundToNearestMultipleOfFour($number)
+{
+    return [Math]::Round($number / 4) * 4
+}
+
 # Extract Video Info
-$mediaInfoOutput = & .\tools\mediainfo.exe "--Output=Video;%Width%-%Height%-%DisplayAspectRatio%" $filepath
+$mediaInfoOutput = & .\tools\mediainfo.exe "--Output=Video;%Width%-%Height%-%DisplayAspectRatio%;%Matrix_coefficients%;%ScanType%" $filepath
 $mediaInfoOutputSplit = $mediaInfoOutput -split "-"
 $videoX = [int]$mediaInfoOutputSplit[0]
 $videoY = [int]$mediaInfoOutputSplit[1]
 $aspectRatio = [decimal]$mediaInfoOutputSplit[2]
+$matrixCoefficients = $mediaInfoOutputSplit[3]
+$scanType = $mediaInfoOutputSplit[4]
+
+# Determine the correct matrix setting for ConvertToYV12 based on matrix coefficients
+$matrixSetting = "Rec601"
+switch -Regex ($matrixCoefficients)
+{
+    "BT\.601"  { $matrixSetting = "Rec601"  }
+    "BT\.709"  { $matrixSetting = "Rec709"  }
+    "BT\.2020" { $matrixSetting = "Rec2020" }
+    Default    { $matrixSetting = "Rec601"  } # Default to Rec601 if unsure
+}
+# Interlacing
+$interlaced = $false
+if ($scanType -eq "Interlaced")
+{
+    $interlaced = $true
+}
+
+# Initial Resize to get a resolution with multiples of 4
+$initialResize = $false
+$initialVideoX = RoundToNearestMultipleOfFour $videoX
+$initialVideoY = RoundToNearestMultipleOfFour $videoY
+if ($initialVideoX -ne $videoX -or $initialVideoY -ne $videoY)
+{
+	$initialResize = $true
+}
 
 # Resize
 $videoX2 = [int]($videoY * $aspectRatio)
@@ -28,7 +61,7 @@ if ($videoX2 -ne $videoX)
 	{
         $resizeAlgo = "Bilinear"
 	}
-	$videoX = $videoX2
+	$videoX =$videoX2
 }
 if ($y -gt 0)
 {
@@ -56,6 +89,8 @@ elseif ($x -gt 0)
         $resizeAlgo = "Bilinear"
 	}
 }
+$videoX = RoundToNearestMultipleOfFour $videoX
+$videoY = RoundToNearestMultipleOfFour $videoY
 
 # Get CPU information
 $logicalCores = (Get-WmiObject -Class Win32_ComputerSystem).NumberOfLogicalProcessors
@@ -69,7 +104,19 @@ $prefetchLogicalCores = $logicalCores - 2
 # Create the Avisynth script content
 $content = @"
 FFmpegSource2("$filepath", atrack=-1)
-ConvertToYV12()
+
+"@
+
+if ($initialResize -eq $true)
+{
+	$content = $content + @"
+BilinearResize($initialVideoX,$initialVideoY)
+
+"@
+}
+
+$content = $content + @"
+ConvertToYV12(matrix="$matrixSetting", interlaced=$interlaced)
 if ("$assumeMode" == "TFF")
 {
     AssumeTFF() # DVD sources
