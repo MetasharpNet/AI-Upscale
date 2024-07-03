@@ -112,6 +112,14 @@ if /i %video_deinterlace_resize_algo% NEQ None (
 		)
 	)
 )
+if /i %video_crop% NEQ None (
+	if /i %video_crop% NEQ Manual (
+		if /i %video_crop% NEQ Auto (
+			call :msg %red% "[ERROR] video_crop=%video_crop% - Possible values: None, Auto, Manual (not case sensitive)"
+			pause & exit
+		)
+	)
+)
 
 REM ---------------------------------------------------------------------------
 REM Variables
@@ -119,11 +127,19 @@ REM ---------------------------------------------------------------------------
 set mode=book
 set pre_model_fullname=models-%pre_model_name%
 if /i %pre_upscaler% == ESRGAN (
-	set pre_model_fullname=realesr-%pre_model_name%
+	if /i %pre_model_name% == animevideov3 (
+		set pre_model_fullname=realesr-%pre_model_name%
+	) else (
+		set pre_model_fullname=realesrgan-%pre_model_name%
+	)
 )
 set model_fullname=models-%model_name%
 if /i %upscaler% == ESRGAN (
-	set model_fullname=realesr-%model_name%
+	if /i %model_name% == animevideov3 (
+		set model_fullname=realesr-%model_name%
+	) else (
+		set model_fullname=realesrgan-%model_name%
+	)
 )
 set model_out_folder=_outputs_%model_name%
 set model_out_tmp_folder=_outputs_%model_name%_tmp
@@ -212,12 +228,12 @@ for %%a in ("_inputs\*.*") do (
 		)
 
 		if /i %images_resize% == height (
-			call :msg %cyan% "##### Downsizing initial pictures max heights to %images_resize_height%px and converting to jpg..."
+			call :msg %cyan% "##### Resizing initial pictures max heights to %images_resize_height%px and converting to jpg..."
 			for %%b in ("_inputs_extracted\*.*") do (
 					tools\imagemagick\convert.exe -resize x%images_resize_height% "%%~fb" "_inputs_resize\%%~nb.jpg"
 			)
 		) else (
-			call :msg %cyan% "##### Downsizing initial pictures max widths to %images_resize_width%px and converting to jpg..."
+			call :msg %cyan% "##### Resizing initial pictures max widths to %images_resize_width%px and converting to jpg..."
 			for %%b in ("_inputs_extracted\*.*") do (
 					tools\imagemagick\convert.exe -resize %images_resize_width% "%%~fb" "_inputs_resize\%%~nb.jpg"
 			)
@@ -241,7 +257,7 @@ for %%a in ("_inputs\*.*") do (
 			call :msg %cyan% "##### Resize pictures from 2X to 1X..."
 			tools\imagemagick\mogrify.exe -resize 50%% _inputs_resize\*.jpg
 		)
-		
+
 		REM Upscaler
 		call :msg %cyan% "##### Upscaling with [%upscaler%][!model_fullname!] pictures..."
 		if /i %upscaler% == CUGAN (
@@ -251,12 +267,12 @@ for %%a in ("_inputs\*.*") do (
 		)
 		
 		if /i %images_resize% == height (
-			call :msg %cyan% "##### Downsizing initial pictures max heights to %images_resize_height%px and converting to jpg..."
+			call :msg %cyan% "##### Resizing initial pictures max heights to %images_resize_height%px and converting to jpg..."
 			for %%b in ("_tmp\*.jpg") do (
 				tools\imagemagick\convert.exe -resize x%images_resize_height% "%%~fb" "%model_out_tmp_folder%\%%~nb.jpg"
 			)
 		) else (
-			call :msg %cyan% "##### Downsizing initial pictures max widths to %images_resize_width%px and converting to jpg..."
+			call :msg %cyan% "##### Resizing initial pictures max widths to %images_resize_width%px and converting to jpg..."
 			for %%b in ("_tmp\*.jpg") do (
 				tools\imagemagick\convert.exe -resize %images_resize_width% "%%~fb" "%model_out_tmp_folder%\%%~nb.jpg"
 			)
@@ -288,7 +304,7 @@ for %%a in ("_inputs\*.*") do (
 
 		if /i %video_deinterlace% NEQ None (
 			call :msg %cyan% "##### Creating Avisynth script for deinterlacing..."
-			call powershell -ExecutionPolicy Bypass -File "tools\createdeinterlace-avs.ps1" -filepath  "%%a" -mode %video_deinterlace% -assumeMode %video_deinterlace_assume_mode% -resizeAlgo %video_deinterlace_resize_algo% -x %video_deinterlace_resize_x% -y %video_deinterlace_resize_y%
+			call powershell -ExecutionPolicy Bypass -File "tools\createdeinterlace-avs.ps1" -filepath  "%%a" -mode %video_deinterlace% -assumeMode %video_deinterlace_assume_mode% -resizeAlgo %video_deinterlace_resize_algo% -x %video_deinterlace_resize_x% -y %video_deinterlace_resize_y% -crop %video_crop% -cropTop %video_crop_top% -cropBottom %video_crop_bottom% -cropLeft %video_crop_left% -cropRight %video_crop_right% 
 			call :msg %cyan% "##### Extracting images with AviSynth from %%a ..."
 			tools\ffmpeg.exe -i deinterlace.avs -qscale:v 1 -qmin 1 -qmax 1 -pix_fmt yuv420p -r 25 -strict experimental _inputs_frames/frame%%08d.jpg
 		) else (

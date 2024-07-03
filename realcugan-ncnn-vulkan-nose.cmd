@@ -27,5 +27,11 @@ REM thread count for load:proc:save (default="1:2:2")
 set load_proc_save="1:2:2"
 REM 19 is pretty high
 set video_encoder_quality=19
+REM None,Auto,Manual
+set video_crop=Auto
+set video_crop_top=0
+set video_crop_left=0
+set video_crop_bottom=0
+set video_crop_right=0
 
 call "upscaler.cmd"

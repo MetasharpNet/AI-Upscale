@@ -2,13 +2,13 @@
 
 REM None, CUGAN, ESRGAN
 set pre_upscaler=None
-set upscaler=CUGAN
+set upscaler=ESRGAN
 REM CUGAN: nose, pro, se
 REM ESRGAN: animevideov3, x4plus, x4plus-anime
-set pre_model_name=se
-set model_name=se
+set pre_model_name=x4plus-anime
+set model_name=x4plus-anime
 REM on, off
-set images_rename=on
+set images_rename=off
 REM height, width
 set images_resize=height
 set images_resize_height=2500
