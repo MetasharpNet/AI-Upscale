@@ -10,7 +10,17 @@ param (
 	# specific height
 	[int]$y = 0,
 	# specific width
-	[int]$x = 0
+	[int]$x = 0,
+	# "None", "Auto", "Manual"
+	[string]$crop = "None",
+	# specific pixel value (used only for Manual)
+	[int]$cropTop = 0,
+	# specific pixel value (used only for Manual)
+	[int]$cropBottom = 0,
+	# specific pixel value (used only for Manual)
+	[int]$cropLeft = 0,
+	# specific pixel value (used only for Manual)
+	[int]$cropRight = 0
 )
 
 # Function to round to the nearest multiple of 4
@@ -116,6 +126,7 @@ BilinearResize($initialVideoX,$initialVideoY)
 }
 
 $content = $content + @"
+ConvertBits(8)
 ConvertToYV12(matrix="$matrixSetting", interlaced=$interlaced)
 if ("$assumeMode" == "TFF")
 {
@@ -147,7 +158,23 @@ else if ("$resizeAlgo" == "Spline64")
 	Spline64Resize($videoX,$videoY) # sharpens a bit
 }
 Prefetch($prefetchLogicalCores) # logical cores -2
+
 "@
+
+if ($crop -eq "Auto")
+{
+	$content = $content + @"
+Robocrop()
+
+"@
+}
+elseif ($crop -eq "Manual")
+{
+	$content = $content + @"
+Robocrop($cropLeft, $cropTop, -$cropRight, -$cropBottom)
+
+"@
+}
 
 # Write the content to deinterlace.avs file
 Set-Content -Path "deinterlace.avs" -Value $content
