@@ -14,6 +14,8 @@ set cyan=[96m
 set green=[92m
 set red=[91m
 set yellow=[93m
+set pre_upscaler_scale=2
+set upscaler_scale=2
 
 REM ---------------------------------------------------------------------------
 REM verify arguments
@@ -80,10 +82,20 @@ if /i %images_rename% NEQ on (
 		pause & exit
 	)
 )
-if /i %images_resize% NEQ height (
-	if /i %images_resize% NEQ width (
-		call :msg %red% "[ERROR] images_rename=%images_resize% - Possible values: height, width (not case sensitive)"
-		pause & exit
+if /i %images_preresize% NEQ none (
+	if /i %images_preresize% NEQ height (
+		if /i %images_preresize% NEQ width (
+			call :msg %red% "[ERROR] images_rename=%images_preresize% - Possible values: none, height, width (not case sensitive)"
+			pause & exit
+		)
+	)
+)
+if /i %images_postresize% NEQ none (
+	if /i %images_postresize% NEQ height (
+		if /i %images_postresize% NEQ width (
+			call :msg %red% "[ERROR] images_rename=%images_postresize% - Possible values: none, height, width (not case sensitive)"
+			pause & exit
+		)
 	)
 )
 if /i %video_deinterlace% NEQ None (
@@ -131,6 +143,7 @@ if /i %pre_upscaler% == ESRGAN (
 		set pre_model_fullname=realesr-%pre_model_name%
 	) else (
 		set pre_model_fullname=realesrgan-%pre_model_name%
+		set pre_upscaler_scale=4
 	)
 )
 set model_fullname=models-%model_name%
@@ -139,6 +152,7 @@ if /i %upscaler% == ESRGAN (
 		set model_fullname=realesr-%model_name%
 	) else (
 		set model_fullname=realesrgan-%model_name%
+		set upscaler_scale=4
 	)
 )
 set model_out_folder=_outputs_%model_name%
@@ -211,6 +225,7 @@ for %%a in ("_inputs\*.*") do (
 		rd /S /Q %model_out_tmp_folder% > NUL 2> NUL
 		mkdir %model_out_tmp_folder% > NUL 2> NUL
 
+		REM 1. EXTRACT
 		call :msg %cyan% "##### Extracting archive..."
 		tools\7-zip\7z.exe x "%%~fa" -o"_inputs_extracted" -aoa -bd > NUL 2> NUL
 		call PowerShell.exe -ExecutionPolicy Bypass -File "tools\torootfolder.ps1" -SourceFilePath "%%~fa" -DestinationFolder "_inputs_extracted"
@@ -222,30 +237,35 @@ for %%a in ("_inputs\*.*") do (
 		del _inputs_extracted\zzz-rip-club*.* /s /q /f > NUL 2> NUL
 		del _inputs_extracted\.DS_Store /s /q /f > NUL 2> NUL
 
+		REM 2. RENAME CRAPPY CHAR
 		if /i %images_rename% == on (
 			call :msg %cyan% "##### Renaming files..."
 			call powershell -ExecutionPolicy Bypass -File "tools\substitutecharacters.ps1" "_inputs_extracted"
 		)
 
-		if /i %images_resize% == height (
-			call :msg %cyan% "##### Resizing initial pictures max heights to %images_resize_height%px and converting to jpg..."
+		REM 3. PRE-RESIZE
+		if /i %images_preresize% == height (
+			call :msg %cyan% "##### Resizing initial pictures max heights to %images_preresize_height%px and converting to jpg..."
 			for %%b in ("_inputs_extracted\*.*") do (
-					tools\imagemagick\convert.exe -resize x%images_resize_height% "%%~fb" "_inputs_resize\%%~nb.jpg"
+					tools\imagemagick\convert.exe -resize x%images_preresize_height% "%%~fb" "_inputs_resize\%%~nb.jpg"
+			)
+		) else if %images_preresize% == width (
+			call :msg %cyan% "##### Resizing initial pictures max widths to %images_preresize_width%px and converting to jpg..."
+			for %%b in ("_inputs_extracted\*.*") do (
+					tools\imagemagick\convert.exe -resize %images_preresize_width% "%%~fb" "_inputs_resize\%%~nb.jpg"
 			)
 		) else (
-			call :msg %cyan% "##### Resizing initial pictures max widths to %images_resize_width%px and converting to jpg..."
-			for %%b in ("_inputs_extracted\*.*") do (
-					tools\imagemagick\convert.exe -resize %images_resize_width% "%%~fb" "_inputs_resize\%%~nb.jpg"
-			)
+			rd /S /Q _inputs_resize > NUL 2> NUL
+			ren _inputs_extracted _inputs_resize
 		)
 
-		REM Pre Upscaler
-		if /i %pre_upscaler% == CUGAN (
+		REM 4. PRE-UPSCALER
+		if /i %pre_upscaler%r == CUGAN (
 			rd /S /Q _inputs_resize_pre > NUL 2> NUL
 			ren _inputs_resize _inputs_resize_pre
 			mkdir _inputs_resize
 			call :msg %cyan% "##### Pre-upscaling with [%upscaler%][!pre_model_fullname!] pictures..."
-			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -f jpg -i _inputs_resize_pre -o _inputs_resize -m !pre_model_fullname! -n 0
+			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -i _inputs_resize_pre -o _inputs_resize -m !pre_model_fullname! -n 0 -f jpg
 			call :msg %cyan% "##### Resize pictures from 2X to 1X..."
 			tools\imagemagick\mogrify.exe -resize 50%% _inputs_resize\*.jpg
 		) else if /i %pre_upscaler% == ESRGAN (
@@ -253,46 +273,59 @@ for %%a in ("_inputs\*.*") do (
 			ren _inputs_resize _inputs_resize_pre
 			mkdir _inputs_resize
 			call :msg %cyan% "##### Pre-upscaling with [%upscaler%][!pre_model_fullname!] pictures..."
-			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -f jpg -i _inputs_resize_pre -o _inputs_resize -n !pre_model_fullname!
-			call :msg %cyan% "##### Resize pictures from 2X to 1X..."
-			tools\imagemagick\mogrify.exe -resize 50%% _inputs_resize\*.jpg
+			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_resize_pre -o _inputs_resize -n !pre_model_fullname! -s !pre_upscaler_scale! -f jpg
+			REM RESIZE DOWN
+			if !pre_upscaler_scale! == 4 (
+				call :msg %cyan% "##### Resize pictures from 4X to 1X..."
+				tools\imagemagick\mogrify.exe -resize 25%% _inputs_resize\*.jpg
+			) else (
+				call :msg %cyan% "##### Resize pictures from 2X to 1X..."
+				tools\imagemagick\mogrify.exe -resize 50%% _inputs_resize\*.jpg
+			)
 		)
 
-		REM Upscaler
+		REM 5. UPSCALER
 		call :msg %cyan% "##### Upscaling with [%upscaler%][!model_fullname!] pictures..."
 		if /i %upscaler% == CUGAN (
-			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -f jpg -i _inputs_resize -o _tmp -m !model_fullname! -n 0
+			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -i _inputs_resize -o _tmp -m !model_fullname! -n 0 -f jpg 
 		) else (
-			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -f jpg -i _inputs_resize -o _tmp -n !model_fullname!
+			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_resize -o _tmp -n !model_fullname! -s !upscaler_scale! -f jpg
 		)
 		
-		if /i %images_resize% == height (
-			call :msg %cyan% "##### Resizing initial pictures max heights to %images_resize_height%px and converting to jpg..."
+		REM 6. POST-RESIZE
+		if /i %images_postresize% == height (
+			call :msg %cyan% "##### Resizing initial pictures max heights to %images_postresize_height%px and converting to jpg..."
 			for %%b in ("_tmp\*.jpg") do (
-				tools\imagemagick\convert.exe -resize x%images_resize_height% "%%~fb" "%model_out_tmp_folder%\%%~nb.jpg"
+				tools\imagemagick\convert.exe -resize x%images_postresize_height% "%%~fb" "%model_out_tmp_folder%\%%~nb.jpg"
+			)
+		) else if /i %images_postresize% == width (
+			call :msg %cyan% "##### Resizing initial pictures max widths to %images_postresize_width%px and converting to jpg..."
+			for %%b in ("_tmp\*.jpg") do (
+				tools\imagemagick\convert.exe -resize %images_postresize_width% "%%~fb" "%model_out_tmp_folder%\%%~nb.jpg"
 			)
 		) else (
-			call :msg %cyan% "##### Resizing initial pictures max widths to %images_resize_width%px and converting to jpg..."
-			for %%b in ("_tmp\*.jpg") do (
-				tools\imagemagick\convert.exe -resize %images_resize_width% "%%~fb" "%model_out_tmp_folder%\%%~nb.jpg"
-			)
+			rd /S /Q "%model_out_tmp_folder%" > NUL 2> NUL
+			ren _tmp "%model_out_tmp_folder%"
 		)
 
+		REM 7. RENAME
 		if /i %images_rename% == on (
 			call :msg %cyan% "##### Renumbering files with padding..."
 			cd %model_out_tmp_folder% && cd .. && call PowerShell.exe -ExecutionPolicy Bypass -File "tools\padfilenames.ps1" -FolderPath "%model_out_tmp_folder%"
 		)
 
+		REM 8. CBZ
 		call :msg %cyan% "##### Creating cbz..."
-		cd %model_out_tmp_folder% && cd .. && cd %model_out_folder% && cd .. && call PowerShell.exe -ExecutionPolicy Bypass -File "tools\zip.ps1" -SourceFolder "%model_out_tmp_folder%" -DestinationFilePath "%model_out_folder%\%%~na [ia-%images_resize_height%px].cbz"
+		cd %model_out_tmp_folder% && cd .. && cd %model_out_folder% && cd .. && call PowerShell.exe -ExecutionPolicy Bypass -File "tools\zip.ps1" -SourceFolder "%model_out_tmp_folder%" -DestinationFilePath "%model_out_folder%\%%~na [ia-%model_name%].cbz"
 
+		REM 9. CLEAN
 		call :msg %cyan% "##### Cleaning..."
 		rd /S /Q _inputs_extracted > NUL 2> NUL
 		rd /S /Q _inputs_resize > NUL 2> NUL
 		rd /S /Q _tmp > NUL 2> NUL
 		rd /S /Q %model_out_tmp_folder% > NUL 2> NUL
 
-		call :msg %green% "##### Book done: %model_out_folder%\%%~na [ia-%images_resize_height%px].cbz"
+		call :msg %green% "##### Book done: %model_out_folder%\%%~na [ia-%model_name%].cbz"
 	)
 
 	REM ---------------------------------------------------------------------------
@@ -303,20 +336,24 @@ for %%a in ("_inputs\*.*") do (
 		mkdir _outputs_frames  > NUL 2> NUL
 
 		if /i %video_deinterlace% NEQ None (
+			REM 1. DEINTERLACE
 			call :msg %cyan% "##### Creating Avisynth script for deinterlacing..."
 			call powershell -ExecutionPolicy Bypass -File "tools\createdeinterlace-avs.ps1" -filepath  "%%a" -mode %video_deinterlace% -assumeMode %video_deinterlace_assume_mode% -resizeAlgo %video_deinterlace_resize_algo% -x %video_deinterlace_resize_x% -y %video_deinterlace_resize_y% -crop %video_crop% -cropTop %video_crop_top% -cropBottom %video_crop_bottom% -cropLeft %video_crop_left% -cropRight %video_crop_right% 
+			REM 2. EXTRACT IMAGES
 			call :msg %cyan% "##### Extracting images with AviSynth from %%a ..."
 			tools\ffmpeg.exe -i deinterlace.avs -qscale:v 1 -qmin 1 -qmax 1 -pix_fmt yuv420p -r 25 -strict experimental _inputs_frames/frame%%08d.jpg
 		) else (
+			REM 2. EXTRACT IMAGES
 			call :msg %cyan% "##### Extracting images from %%a ..."
 			tools\ffmpeg.exe -i "%%a" -qscale:v 1 -qmin 1 -qmax 1 -pix_fmt yuv420p -r 25 -strict experimental _inputs_frames/frame%%08d.jpg
 		)
 
+		REM 3. CLEAN
 		call :msg %cyan% "##### Deleting temporary files..."
 		del /f /q deinterlace.avs
 		del /f /q "%%a.ffindex"
 
-		REM Pre Upscaler
+		REM 4. PRE-UPSCALER
 		if /i %pre_upscaler% == CUGAN (
 			rd /S /Q _inputs_pre_frames > NUL 2> NUL
 			ren _inputs_frames _inputs_pre_frames
@@ -330,19 +367,26 @@ for %%a in ("_inputs\*.*") do (
 			ren _inputs_frames _inputs_pre_frames
 			mkdir _inputs_frames
 			call :msg %cyan% "##### Pre-upscaling with [%pre_upscaler%][!pre_model_fullname!] images..."
-			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_pre_frames -o _inputs_frames -n %pre_model_fullname% -s 2 -f jpg -j %load_proc_save%
-			call :msg %cyan% "##### Resize pictures from 2X to 1X..."
-			tools\imagemagick\mogrify.exe -resize 50%% _inputs_frames\*.jpg
+			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_pre_frames -o _inputs_frames -n %pre_model_fullname% -s !pre_upscaler_scale! -f jpg -j %load_proc_save%
+			REM RESIZE DOWN
+			if !post_upscaler_scale! == 4 (
+				call :msg %cyan% "##### Resize pictures from 4X to 1X..."
+				tools\imagemagick\mogrify.exe -resize 25%% _inputs_frames\*.jpg
+			) else (
+				call :msg %cyan% "##### Resize pictures from 2X to 1X..."
+				tools\imagemagick\mogrify.exe -resize 50%% _inputs_frames\*.jpg
+			)
 		)
 
-		REM Upscaler
+		REM 5. UPSCALER
 		call :msg %cyan% "##### Upscaling with [%upscaler%][!model_fullname!] images..."
 		if /i %upscaler% == CUGAN (
 			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -i _inputs_frames -o _outputs_frames -m %model_fullname% -n 0 -f jpg -j %load_proc_save%
 		) else (
-			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_frames -o _outputs_frames -n %model_fullname% -s 2 -f jpg -j %load_proc_save%
+			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_frames -o _outputs_frames -n %model_fullname% -s !upscaler_scale! -f jpg -j %load_proc_save%
 		)
-
+		
+		REM 6. JOIN TO VIDEO
 		call :msg %cyan% "##### Joining upscaled images into a video..."
 		tools\ffmpeg.exe -i _outputs_frames/frame%%08d.jpg -i "%%a" -vf "scale=in_range=full:out_range=full" -map 0:v:0 -map 1:a:0 -c:a copy -c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq %video_encoder_quality% -qmin 1 -qmax 51 -b:v 0 -r 25 -pix_fmt yuv420p -color_range pc -colorspace smpte170m -color_primaries smpte170m -color_trc iec61966_2_1 -g 25 -keyint_min 25 "!model_out_folder!\%%~na.mp4"
 		REM alternative config to keep colors: -pix_fmt rgb24 -color_range pc -colorspace bt709 -color_primaries bt709 -color_trc iec61966_2_1
@@ -354,6 +398,7 @@ for %%a in ("_inputs\*.*") do (
 		REM tools\ffmpeg.exe -i _outputs_frames/frame%%08d.jpg -i "%%a" -vf "scale=in_range=full:out_range=full" -map 0:v:0 -map 1:a:0 -c:a copy -c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq 35 -qmin 1 -qmax 51 -b:v 0 -r 25 -pix_fmt yuv420p -color_range pc -colorspace smpte170m -color_primaries smpte170m -color_trc iec61966_2_1 -g 25 -keyint_min 25 "!model_out_folder!\%%~na.35.mp4"
 
 
+		REM 7. CLEAN
 		call :msg %cyan% "##### Cleaning..."
 		rd /S /Q _inputs_pre_frames > NUL 2> NUL
 		rd /S /Q _inputs_frames > NUL 2> NUL

@@ -9,10 +9,13 @@ set pre_model_name=animevideov3
 set model_name=animevideov3
 REM on, off
 set images_rename=on
-REM height, width
-set images_resize=height
-set images_resize_height=2500
-set images_resize_width=1738
+REM none, height, width
+set images_preresize=none
+set images_preresize_height=2500
+set images_preresize_width=1738
+set images_postresize=none
+set images_postresize_height=2500
+set images_postresize_width=1738
 REM None, QTGMC, Decomb, JustResize
 set video_deinterlace=QTGMC
 REM None, BFF for VHS, TFF for DVD
