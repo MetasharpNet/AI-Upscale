@@ -265,33 +265,45 @@ for %%a in ("_inputs\*.*") do (
 			ren _inputs_resize _inputs_resize_pre
 			mkdir _inputs_resize
 			call :msg %cyan% "##### Pre-upscaling with [%upscaler%][!pre_model_fullname!] pictures..."
-			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -i _inputs_resize_pre -o _inputs_resize -m !pre_model_fullname! -n 0 -f jpg
-			call :msg %cyan% "##### Resize pictures from 2X to 1X..."
-			tools\imagemagick\mogrify.exe -resize 50%% _inputs_resize\*.jpg
+			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -i _inputs_resize_pre -o _inputs_resize -m !pre_model_fullname! -n 0
 		) else if /i %pre_upscaler% == ESRGAN (
 			rd /S /Q _inputs_resize_pre > NUL 2> NUL
 			ren _inputs_resize _inputs_resize_pre
 			mkdir _inputs_resize
 			call :msg %cyan% "##### Pre-upscaling with [%upscaler%][!pre_model_fullname!] pictures..."
-			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_resize_pre -o _inputs_resize -n !pre_model_fullname! -s !pre_upscaler_scale! -f jpg
-			REM RESIZE DOWN
-			if !pre_upscaler_scale! == 4 (
-				call :msg %cyan% "##### Resize pictures from 4X to 1X..."
-				tools\imagemagick\mogrify.exe -resize 25%% _inputs_resize\*.jpg
-			) else (
-				call :msg %cyan% "##### Resize pictures from 2X to 1X..."
-				tools\imagemagick\mogrify.exe -resize 50%% _inputs_resize\*.jpg
+			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_resize_pre -o _inputs_resize -n !pre_model_fullname! -s !pre_upscaler_scale!
+		)
+		REM 4.1. Convert all non-JPG images to JPG with 100% quality
+		for %%f in ("_inputs_resize\*.*") do (
+			if /I not "%%~xf"==".jpg" (
+				tools\imagemagick\convert "%%f" -quality 100 "_inputs_resize\%%~nf.jpg"
+				del "%%f"
 			)
+		)
+		REM 4.2. RESIZE DOWN
+		if !pre_upscaler_scale! == 4 (
+			call :msg %cyan% "##### Resize pictures from 4X to 1X..."
+			tools\imagemagick\mogrify.exe -resize 25%% _inputs_resize\*.jpg
+		) else (
+			call :msg %cyan% "##### Resize pictures from 2X to 1X..."
+			tools\imagemagick\mogrify.exe -resize 50%% _inputs_resize\*.jpg
 		)
 
 		REM 5. UPSCALER
 		call :msg %cyan% "##### Upscaling with [%upscaler%][!model_fullname!] pictures..."
 		if /i %upscaler% == CUGAN (
-			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -i _inputs_resize -o _tmp -m !model_fullname! -n 0 -f jpg 
+			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -i _inputs_resize -o _tmp -m !model_fullname! -n 0
 		) else (
-			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_resize -o _tmp -n !model_fullname! -s !upscaler_scale! -f jpg
+			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_resize -o _tmp -n !model_fullname! -s !upscaler_scale!
 		)
-		
+		REM 5.1. Convert all non-JPG images to JPG with 100% quality
+		for %%f in ("_tmp\*.*") do (
+			if /I not "%%~xf"==".jpg" (
+				tools\imagemagick\convert "%%f" -quality 100 "_tmp\%%~nf.jpg"
+				del "%%f"
+			)
+		)
+
 		REM 6. POST-RESIZE
 		if /i %images_postresize% == height (
 			call :msg %cyan% "##### Resizing initial pictures max heights to %images_postresize_height%px and converting to jpg..."
@@ -359,33 +371,45 @@ for %%a in ("_inputs\*.*") do (
 			ren _inputs_frames _inputs_pre_frames
 			mkdir _inputs_frames
 			call :msg %cyan% "##### Pre-upscaling with [%pre_upscaler%][!pre_model_fullname!] images..."
-			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -f jpg -i _inputs_pre_frames -o _inputs_frames -m %pre_model_fullname% -n 0 -f jpg -j %load_proc_save%
-			call :msg %cyan% "##### Resize pictures from 2X to 1X..."
-			tools\imagemagick\mogrify.exe -resize 50%% _inputs_frames\*.jpg
+			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -f jpg -i _inputs_pre_frames -o _inputs_frames -m %pre_model_fullname% -n 0 -j %load_proc_save%
 		) else if /i %pre_upscaler% == ESRGAN (
 			rd /S /Q _inputs_pre_frames > NUL 2> NUL
 			ren _inputs_frames _inputs_pre_frames
 			mkdir _inputs_frames
 			call :msg %cyan% "##### Pre-upscaling with [%pre_upscaler%][!pre_model_fullname!] images..."
-			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_pre_frames -o _inputs_frames -n %pre_model_fullname% -s !pre_upscaler_scale! -f jpg -j %load_proc_save%
-			REM RESIZE DOWN
-			if !post_upscaler_scale! == 4 (
-				call :msg %cyan% "##### Resize pictures from 4X to 1X..."
-				tools\imagemagick\mogrify.exe -resize 25%% _inputs_frames\*.jpg
-			) else (
-				call :msg %cyan% "##### Resize pictures from 2X to 1X..."
-				tools\imagemagick\mogrify.exe -resize 50%% _inputs_frames\*.jpg
+			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_pre_frames -o _inputs_frames -n %pre_model_fullname% -s !pre_upscaler_scale! -j %load_proc_save%
+		)
+		REM 4.1. Convert all non-JPG images to JPG with 100% quality
+		for %%f in ("_inputs_frames\*.*") do (
+			if /I not "%%~xf"==".jpg" (
+				tools\imagemagick\convert "%%f" -quality 100 "_inputs_frames\%%~nf.jpg"
+				del "%%f"
 			)
+		)
+		REM 4.2. RESIZE DOWN
+		if !post_upscaler_scale! == 4 (
+			call :msg %cyan% "##### Resize pictures from 4X to 1X..."
+			tools\imagemagick\mogrify.exe -resize 25%% _inputs_frames\*.jpg
+		) else (
+			call :msg %cyan% "##### Resize pictures from 2X to 1X..."
+			tools\imagemagick\mogrify.exe -resize 50%% _inputs_frames\*.jpg
 		)
 
 		REM 5. UPSCALER
 		call :msg %cyan% "##### Upscaling with [%upscaler%][!model_fullname!] images..."
 		if /i %upscaler% == CUGAN (
-			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -i _inputs_frames -o _outputs_frames -m %model_fullname% -n 0 -f jpg -j %load_proc_save%
+			tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -i _inputs_frames -o _outputs_frames -m %model_fullname% -n 0 -j %load_proc_save%
 		) else (
 			tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_frames -o _outputs_frames -n %model_fullname% -s !upscaler_scale! -f jpg -j %load_proc_save%
 		)
-		
+		REM 5.1. Convert all non-JPG images to JPG with 100% quality
+		for %%f in ("_outputs_frames\*.*") do (
+			if /I not "%%~xf"==".jpg" (
+				tools\imagemagick\convert "%%f" -quality 100 "_outputs_frames\%%~nf.jpg"
+				del "%%f"
+			)
+		)
+
 		REM 6. JOIN TO VIDEO
 		call :msg %cyan% "##### Joining upscaled images into a video..."
 		tools\ffmpeg.exe -i _outputs_frames/frame%%08d.jpg -i "%%a" -vf "scale=in_range=full:out_range=full" -map 0:v:0 -map 1:a:0 -c:a copy -c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq %video_encoder_quality% -qmin 1 -qmax 51 -b:v 0 -r 25 -pix_fmt yuv420p -color_range pc -colorspace smpte170m -color_primaries smpte170m -color_trc iec61966_2_1 -g 25 -keyint_min 25 "!model_out_folder!\%%~na.mp4"
