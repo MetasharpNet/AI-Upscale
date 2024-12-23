@@ -13,7 +13,7 @@ REM none, height, width
 set images_preresize=none
 set images_preresize_height=2500
 set images_preresize_width=1738
-set images_postresize=none
+set images_postresize=height
 set images_postresize_height=2500
 set images_postresize_width=1738
 REM None, QTGMC, Decomb, JustResize

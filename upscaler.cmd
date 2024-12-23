@@ -19,6 +19,23 @@ set upscaler_scale=2
 set pre_upscaler_on=0
 set upscaler_on=0
 
+REM set folder_inputs=_inputs
+REM set folder_tmp=_tmp
+REM set folder_tmp_extract=_tmp\_extract
+REM set folder_tmp_resize=_tmp\_resize
+REM set folder_tmp_resize_pre=_tmp\_resize_pre
+REM set folder_tmp_tmp=_tmp\_tmp
+REM set folder_tmp_out=_tmp\_out
+REM set folder_outputs=_outputs
+REM _inputs
+REM _inputs_extracted
+REM _inputs_resize
+REM ... rename _inputs_resize_pre
+REM _inputs_resize
+REM _tmp
+REM %model_out_tmp_folder%
+REM %model_out_folder%
+
 REM ---------------------------------------------------------------------------
 REM verify arguments
 REM ---------------------------------------------------------------------------
@@ -168,6 +185,10 @@ REM ---------------------------------------------------------------------------
 REM Process
 REM ---------------------------------------------------------------------------
 
+REM RENAME CRAPPY CHAR
+call :msg %cyan% "##### Renaming files..."
+call powershell -ExecutionPolicy Bypass -File "tools\substitutecharacters.ps1" "_inputs"
+
 call :msg %green% "##### [%upscaler%][!model_fullname!]"
 
 call :msg %cyan% "##### Cleaning _inputs..."
@@ -222,9 +243,105 @@ for %%a in ("_inputs\*.*") do (
 	set "startTime=!time: =0!"
 
 	REM ---------------------------------------------------------------------------
+	REM Image
+	REM ---------------------------------------------------------------------------
+	if /i !mode! == image (
+		call :msg %cyan% "##### IMAGE"
+		mkdir _inputs_extracted  > NUL 2> NUL
+		mkdir _inputs_resize  > NUL 2> NUL
+		mkdir _tmp  > NUL 2> NUL
+		rd /S /Q %model_out_tmp_folder% > NUL 2> NUL
+		mkdir %model_out_tmp_folder% > NUL 2> NUL
+
+		REM 1. PRE-RESIZE
+		if /i %images_preresize% == height (
+			call :msg %cyan% "##### Resizing initial pictures max heights to %images_preresize_height%px and converting to jpg..."
+			tools\imagemagick\convert.exe -resize x%images_preresize_height% "%%~fa" "_inputs_resize\%%~fa.jpg"
+		) else if %images_preresize% == width (
+			call :msg %cyan% "##### Resizing initial pictures max widths to %images_preresize_width%px and converting to jpg..."
+			tools\imagemagick\convert.exe -resize %images_preresize_width% "%%~fa" "_inputs_resize\%%~fa.jpg"
+		) else (
+			copy /Y "%%~a" "_inputs_resize\%%~na.jpg"
+		)
+
+		REM 2. PRE-UPSCALER
+		if !pre_upscaler_on! == 1 (
+			rd /S /Q _inputs_resize_pre > NUL 2> NUL
+			ren _inputs_resize _inputs_resize_pre
+			mkdir _inputs_resize
+			call :msg %cyan% "##### Pre-upscaling with [%upscaler%][!pre_model_fullname!] pictures..."
+			if /i %pre_upscaler% == CUGAN (
+				tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -i _inputs_resize_pre -o _inputs_resize -m !pre_model_fullname! -n 0
+			) else if /i %pre_upscaler% == ESRGAN (
+				tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_resize_pre -o _inputs_resize -n !pre_model_fullname! -s !pre_upscaler_scale!
+			)
+			REM 2.1. Convert all non-JPG images to JPG with 100% quality
+			for %%f in ("_inputs_resize\*.*") do (
+				if /I not "%%~xf"==".jpg" (
+					tools\imagemagick\convert "%%f" -quality 100 "_inputs_resize\%%~nf.jpg"
+					del "%%f"
+				)
+			)
+			REM 2.2. RESIZE DOWN
+			if !pre_upscaler_scale! == 4 (
+				call :msg %cyan% "##### Resize pictures from 4X to 2X..."
+				tools\imagemagick\mogrify.exe -resize 25%% _inputs_resize\*.jpg
+			) else (
+				call :msg %cyan% "##### Resize pictures from 2X to 1X..."
+				tools\imagemagick\mogrify.exe -resize 50%% _inputs_resize\*.jpg
+			)
+		)
+		
+		REM 3. UPSCALER
+		if !upscaler_on! == 1 (
+			call :msg %cyan% "##### Upscaling with [%upscaler%][!model_fullname!] pictures..."
+			if /i %upscaler% == CUGAN (
+				tools\realcugan-ncnn-vulkan\realcugan-ncnn-vulkan.exe -x -i _inputs_resize -o _tmp -m !model_fullname! -n 0
+			) else (
+				tools\realesrgan-ncnn-vulkan\realesrgan-ncnn-vulkan.exe -x -i _inputs_resize -o _tmp -n !model_fullname! -s !upscaler_scale!
+			)
+			REM 3.1. Convert all non-JPG images to JPG with 100% quality
+			for %%f in ("_tmp\*.*") do (
+				if /I not "%%~xf"==".jpg" (
+					tools\imagemagick\convert "%%f" -quality 100 "_tmp\%%~nf.jpg"
+					del "%%f"
+				)
+			)
+		)
+
+		REM 4. POST-RESIZE
+		if /i %images_postresize% == height (
+			call :msg %cyan% "##### Resizing initial pictures max heights to %images_postresize_height%px and converting to jpg..."
+			for %%b in ("_tmp\*.jpg") do (
+				tools\imagemagick\convert.exe -resize x%images_postresize_height% "%%~fb" "%model_out_tmp_folder%\%%~nb.jpg"
+			)
+		) else if /i %images_postresize% == width (
+			call :msg %cyan% "##### Resizing initial pictures max widths to %images_postresize_width%px and converting to jpg..."
+			for %%b in ("_tmp\*.jpg") do (
+				tools\imagemagick\convert.exe -resize %images_postresize_width% "%%~fb" "%model_out_tmp_folder%\%%~nb.jpg"
+			)
+		) else (
+			rd /S /Q "%model_out_tmp_folder%" > NUL 2> NUL
+			ren _tmp "%model_out_tmp_folder%"
+		)
+
+		copy /Y "%model_out_tmp_folder%\%%~na.jpg" "%model_out_folder%\%%~na [ia-%model_name%].jpg"
+
+		REM 5. CLEAN
+		call :msg %cyan% "##### Cleaning..."
+		rd /S /Q _inputs_extracted > NUL 2> NUL
+		rd /S /Q _inputs_resize > NUL 2> NUL
+		rd /S /Q _tmp > NUL 2> NUL
+		rd /S /Q %model_out_tmp_folder% > NUL 2> NUL
+
+		call :msg %green% "##### Image done: %model_out_folder%\%%~na [ia-%model_name%].jpg
+	)
+
+	REM ---------------------------------------------------------------------------
 	REM Book
 	REM ---------------------------------------------------------------------------
 	if /i !mode! == book (
+		call :msg %cyan% "##### BOOK"
 		mkdir _inputs_extracted  > NUL 2> NUL
 		mkdir _inputs_resize  > NUL 2> NUL
 		mkdir _tmp  > NUL 2> NUL
@@ -350,6 +467,7 @@ for %%a in ("_inputs\*.*") do (
 	REM Video
 	REM ---------------------------------------------------------------------------
 	if /i !mode! == video (
+		call :msg %cyan% "##### VIDEO"
 		mkdir _inputs_frames  > NUL 2> NUL
 		mkdir _outputs_frames  > NUL 2> NUL
 
