@@ -256,10 +256,10 @@ for %%a in ("_inputs\*.*") do (
 		REM 1. PRE-RESIZE
 		if /i %images_preresize% == height (
 			call :msg %cyan% "##### Resizing initial pictures max heights to %images_preresize_height%px and converting to jpg..."
-			tools\imagemagick\convert.exe -resize x%images_preresize_height% "%%~fa" "_inputs_resize\%%~fa.jpg"
+			tools\imagemagick\convert.exe -resize x%images_preresize_height% "%%~fa" "_inputs_resize\%%~na.jpg"
 		) else if %images_preresize% == width (
 			call :msg %cyan% "##### Resizing initial pictures max widths to %images_preresize_width%px and converting to jpg..."
-			tools\imagemagick\convert.exe -resize %images_preresize_width% "%%~fa" "_inputs_resize\%%~fa.jpg"
+			tools\imagemagick\convert.exe -resize %images_preresize_width% "%%~fa" "_inputs_resize\%%~na.jpg"
 		) else (
 			copy /Y "%%~a" "_inputs_resize\%%~na.jpg"
 		)
