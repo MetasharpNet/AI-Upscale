@@ -13,4 +13,12 @@ HOW TO
 
 Have Fun.
 
+## How to support?
+
+1- Star this github repository
+
+2- Tip me on : https://ko-fi.com/metasharp
+
+## Stats
+
 Download stats : https://hanadigital.github.io/grev/?user=MetasharpNet&repo=AI-Upscale
